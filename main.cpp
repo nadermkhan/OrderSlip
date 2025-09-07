@@ -28,7 +28,7 @@
 #include <QSqlError>
 #include <QPageSize>
 
-QT_CHARTS_USE_NAMESPACE
+QT_CHARTS_USE_NAMESPACE;  // Added semicolon here
 
 class ProjectTracker : public QMainWindow {
 private:
