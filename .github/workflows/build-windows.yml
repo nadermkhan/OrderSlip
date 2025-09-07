@@ -56,7 +56,7 @@ jobs:
         7z a ProjectTracker-Windows-x64.zip *.exe *.dll platforms/ styles/ sqldrivers/ projects.db
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ProjectTracker-Windows-x64
         path: build/ProjectTracker-Windows-x64.zip
