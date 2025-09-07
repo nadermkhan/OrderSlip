@@ -28,8 +28,6 @@
 #include <QSqlError>
 #include <QPageSize>
 
-using namespace QtCharts;
-
 class ProjectTracker : public QMainWindow {
 private:
     // Input fields
