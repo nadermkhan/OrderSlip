@@ -17,16 +17,18 @@
 #include <QPainter>
 #include <QDir>
 #include <QFileDialog>
-#include <QtCharts/QChartView>
-#include <QtCharts/QBarSeries>
-#include <QtCharts/QBarSet>
-#include <QtCharts/QChart>
-#include <QtCharts/QValueAxis>
-#include <QtCharts/QBarCategoryAxis>
+#include <QChartView>
+#include <QBarSeries>
+#include <QBarSet>
+#include <QChart>
+#include <QValueAxis>
+#include <QBarCategoryAxis>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
-#include <QPagedPaintDevice>
+#include <QPageSize>
+
+QT_CHARTS_USE_NAMESPACE
 
 class ProjectTracker : public QMainWindow {
 private:
@@ -41,7 +43,7 @@ private:
     QListWidget *pointsList;
     
     // Dashboard elements
-    QtCharts::QChartView *chartView;
+    QChartView *chartView;
     
 public:
     ProjectTracker(QWidget *parent = nullptr) : QMainWindow(parent) {
@@ -132,7 +134,7 @@ private:
         revenueLabel->setStyleSheet("QLabel { font-size: 18px; font-weight: bold; margin: 10px; }");
         dashboardLayout->addWidget(revenueLabel);
         
-        chartView = new QtCharts::QChartView;
+        chartView = new QChartView;
         chartView->setRenderHint(QPainter::Antialiasing);
         dashboardLayout->addWidget(chartView);
         
@@ -295,8 +297,8 @@ private:
     void loadDashboard() {
         QSqlQuery query("SELECT month, amount FROM revenue ORDER BY month");
         
-        QtCharts::QBarSeries *series = new QtCharts::QBarSeries();
-        QtCharts::QBarSet *set = new QtCharts::QBarSet("Revenue ($)");
+        QBarSeries *series = new QBarSeries();
+        QBarSet *set = new QBarSet("Revenue ($)");
         
         QStringList months;
         while (query.next()) {
@@ -306,17 +308,17 @@ private:
         
         series->append(set);
         
-        QtCharts::QChart *chart = new QtCharts::QChart();
+        QChart *chart = new QChart();
         chart->addSeries(series);
         chart->setTitle("Monthly Revenue");
-        chart->setAnimationOptions(QtCharts::QChart::SeriesAnimations);
+        chart->setAnimationOptions(QChart::SeriesAnimations);
         
-        QtCharts::QBarCategoryAxis *axisX = new QtCharts::QBarCategoryAxis();
+        QBarCategoryAxis *axisX = new QBarCategoryAxis();
         axisX->append(months);
         chart->addAxis(axisX, Qt::AlignBottom);
         series->attachAxis(axisX);
         
-        QtCharts::QValueAxis *axisY = new QtCharts::QValueAxis();
+        QValueAxis *axisY = new QValueAxis();
         axisY->setTitleText("Amount ($)");
         chart->addAxis(axisY, Qt::AlignLeft);
         series->attachAxis(axisY);

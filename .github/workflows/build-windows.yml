@@ -20,12 +20,12 @@ jobs:
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
       with:
-        version: '6.5.0'  # Latest stable Qt version
+        version: '6.5.0'
         host: 'windows'
         target: 'desktop'
         arch: 'win64_msvc2019_64'
         dir: '${{ github.workspace }}/qt'
-        modules: 'qt5compat qtcharts'
+        modules: 'qtcharts'
         cache: true
         cache-key-prefix: 'qt-cache'
 
