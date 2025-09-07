@@ -17,18 +17,18 @@
 #include <QPainter>
 #include <QDir>
 #include <QFileDialog>
-#include <QChartView>
-#include <QBarSeries>
-#include <QBarSet>
-#include <QChart>
-#include <QValueAxis>
-#include <QBarCategoryAxis>
+#include <QtCharts/QChartView>
+#include <QtCharts/QBarSeries>
+#include <QtCharts/QBarSet>
+#include <QtCharts/QChart>
+#include <QtCharts/QValueAxis>
+#include <QtCharts/QBarCategoryAxis>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QPageSize>
 
-QT_CHARTS_USE_NAMESPACE;  // Added semicolon here
+using namespace QtCharts;
 
 class ProjectTracker : public QMainWindow {
 private:
