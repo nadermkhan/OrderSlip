@@ -679,9 +679,26 @@ private:
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     
-    // Set application font to support Bangla
+    // Try to set Kalpurush font with fallback options
     QFont appFont = app.font();
-    appFont.setFamily("Noto Sans Bengali");
+    QStringList fontFamilies = {"Kalpurush", "SolaimanLipi", "Noto Sans Bengali", "Vrinda"};
+    
+    bool fontSet = false;
+    for (const QString &fontFamily : fontFamilies) {
+        appFont.setFamily(fontFamily);
+        if (QFontInfo(appFont).family() == fontFamily) {
+            fontSet = true;
+            break;
+        }
+    }
+    
+    if (!fontSet) {
+        qDebug() << "Warning: Kalpurush font not found, using system default";
+    } else {
+        qDebug() << "Using font:" << appFont.family();
+    }
+    
+    appFont.setPointSize(10); // Adjust size as needed
     app.setFont(appFont);
     
     ProjectTracker window;
