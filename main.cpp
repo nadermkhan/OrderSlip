@@ -27,6 +27,9 @@
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QPageSize>
+#include <QSpinBox>
+#include <QDoubleSpinBox>
+#include <QCheckBox>
 
 class ProjectTracker : public QMainWindow {
 private:
@@ -34,14 +37,19 @@ private:
     QLineEdit *clientNameEdit;
     QLineEdit *clientPhoneEdit;
     QDateEdit *dateEdit;
-    QLineEdit *billEdit;
-    QLineEdit *advancedEdit;
-    QLineEdit *dueEdit;
+    QDoubleSpinBox *billEdit;
+    QDoubleSpinBox *advancedEdit;
+    QDoubleSpinBox *dueEdit;
+    QSpinBox *percentageSpinBox;
+    QCheckBox *autoCalculateCheckBox;
     QTextEdit *pointsEdit;
     QListWidget *pointsList;
     
     // Dashboard elements
     QChartView *chartView;
+    
+    // Labels for displaying calculations
+    QLabel *calculationInfoLabel;
     
 public:
     ProjectTracker(QWidget *parent = nullptr) : QMainWindow(parent) {
@@ -52,7 +60,7 @@ public:
 
 private:
     void setupUI() {
-        setWindowTitle("Freelance Project Tracker");
+        setWindowTitle("Nader's Project Agreement Slip");
         resize(900, 700);
         
         // Main tab widget
@@ -68,7 +76,7 @@ private:
         // Client Information Group
         QGroupBox *clientGroup = new QGroupBox("Client Information");
         QFormLayout *clientLayout = new QFormLayout;
-        clientNameEdit = new QLineEdit("Omor Faruk");
+        clientNameEdit = new QLineEdit("");
         clientPhoneEdit = new QLineEdit;
         dateEdit = new QDateEdit(QDate::currentDate());
         dateEdit->setDisplayFormat("dd MMMM yyyy");
@@ -80,21 +88,83 @@ private:
         
         // Financial Details Group
         QGroupBox *financeGroup = new QGroupBox("Financial Details");
+        QVBoxLayout *financeMainLayout = new QVBoxLayout;
         QFormLayout *financeLayout = new QFormLayout;
-        billEdit = new QLineEdit;
-        advancedEdit = new QLineEdit;
-        dueEdit = new QLineEdit;
-        financeLayout->addRow("Bill:", billEdit);
-        financeLayout->addRow("Advanced:", advancedEdit);
-        financeLayout->addRow("Due:", dueEdit);
-        financeGroup->setLayout(financeLayout);
+        
+        // Bill amount
+        billEdit = new QDoubleSpinBox;
+        billEdit->setRange(0, 999999.99);
+        billEdit->setDecimals(2);
+        billEdit->setPrefix("$");
+        billEdit->setSingleStep(100);
+        financeLayout->addRow("Total Bill:", billEdit);
+        
+        // Auto-calculation controls
+        QHBoxLayout *autoCalcLayout = new QHBoxLayout;
+        autoCalculateCheckBox = new QCheckBox("Auto Calculate");
+        autoCalculateCheckBox->setChecked(true);
+        percentageSpinBox = new QSpinBox;
+        percentageSpinBox->setRange(0, 100);
+        percentageSpinBox->setValue(60);
+        percentageSpinBox->setSuffix("%");
+        QPushButton *applyPercentBtn = new QPushButton("Apply %");
+        autoCalcLayout->addWidget(autoCalculateCheckBox);
+        autoCalcLayout->addWidget(new QLabel("Advanced:"));
+        autoCalcLayout->addWidget(percentageSpinBox);
+        autoCalcLayout->addWidget(applyPercentBtn);
+        autoCalcLayout->addStretch();
+        
+        // Advanced amount
+        advancedEdit = new QDoubleSpinBox;
+        advancedEdit->setRange(0, 999999.99);
+        advancedEdit->setDecimals(2);
+        advancedEdit->setPrefix("$");
+        advancedEdit->setSingleStep(100);
+        financeLayout->addRow("Advanced Payment:", advancedEdit);
+        
+        // Due amount
+        dueEdit = new QDoubleSpinBox;
+        dueEdit->setRange(0, 999999.99);
+        dueEdit->setDecimals(2);
+        dueEdit->setPrefix("$");
+        dueEdit->setSingleStep(100);
+        dueEdit->setReadOnly(true); // Make it read-only by default
+        dueEdit->setStyleSheet("QDoubleSpinBox:read-only { background-color: #f0f0f0; }");
+        financeLayout->addRow("Due Amount:", dueEdit);
+        
+        // Calculation info label
+        calculationInfoLabel = new QLabel;
+        calculationInfoLabel->setStyleSheet("QLabel { color: #0066cc; padding: 5px; "
+                                           "background-color: #e6f2ff; border-radius: 3px; }");
+        calculationInfoLabel->setWordWrap(true);
+        
+        financeMainLayout->addLayout(autoCalcLayout);
+        financeMainLayout->addLayout(financeLayout);
+        financeMainLayout->addWidget(calculationInfoLabel);
+        
+        financeGroup->setLayout(financeMainLayout);
         mainLayout->addWidget(financeGroup);
+        
+        // Quick calculation buttons
+        QGroupBox *quickCalcGroup = new QGroupBox("Quick Calculations");
+        QHBoxLayout *quickCalcLayout = new QHBoxLayout;
+        QPushButton *calc50Btn = new QPushButton("50% Advanced");
+        QPushButton *calc60Btn = new QPushButton("60% Advanced");
+        QPushButton *calc70Btn = new QPushButton("70% Advanced");
+        QPushButton *calc100Btn = new QPushButton("Full Payment");
+        quickCalcLayout->addWidget(calc50Btn);
+        quickCalcLayout->addWidget(calc60Btn);
+        quickCalcLayout->addWidget(calc70Btn);
+        quickCalcLayout->addWidget(calc100Btn);
+        quickCalcGroup->setLayout(quickCalcLayout);
+        mainLayout->addWidget(quickCalcGroup);
         
         // Project Points Group
         QGroupBox *pointsGroup = new QGroupBox("Project Points");
         QVBoxLayout *pointsLayout = new QVBoxLayout;
         pointsEdit = new QTextEdit;
         pointsEdit->setPlaceholderText("Enter project points (one per line)");
+        pointsEdit->setMaximumHeight(60);
         QPushButton *addPointBtn = new QPushButton("Add Point");
         pointsList = new QListWidget;
         pointsLayout->addWidget(pointsEdit);
@@ -141,6 +211,25 @@ private:
         connect(saveBtn, &QPushButton::clicked, this, &ProjectTracker::saveProject);
         connect(generateBtn, &QPushButton::clicked, this, &ProjectTracker::generatePDFs);
         connect(clearBtn, &QPushButton::clicked, this, &ProjectTracker::clearForm);
+        
+        // Financial calculation signals
+        connect(billEdit, QOverload<double>::of(&QDoubleSpinBox::valueChanged), 
+                this, &ProjectTracker::calculateDue);
+        connect(advancedEdit, QOverload<double>::of(&QDoubleSpinBox::valueChanged), 
+                this, &ProjectTracker::calculateDue);
+        connect(autoCalculateCheckBox, &QCheckBox::toggled, 
+                this, &ProjectTracker::toggleAutoCalculation);
+        connect(applyPercentBtn, &QPushButton::clicked, 
+                this, &ProjectTracker::applyPercentage);
+        
+        // Quick calculation button signals
+        connect(calc50Btn, &QPushButton::clicked, [this]() { calculateAdvancedByPercentage(50); });
+        connect(calc60Btn, &QPushButton::clicked, [this]() { calculateAdvancedByPercentage(60); });
+        connect(calc70Btn, &QPushButton::clicked, [this]() { calculateAdvancedByPercentage(70); });
+        connect(calc100Btn, &QPushButton::clicked, [this]() { calculateAdvancedByPercentage(100); });
+        
+        // Initialize calculation
+        calculateDue();
     }
     
     void setupDatabase() {
@@ -167,6 +256,50 @@ private:
                    "amount REAL)");
     }
     
+    void calculateDue() {
+        if (autoCalculateCheckBox->isChecked()) {
+            double bill = billEdit->value();
+            double advanced = advancedEdit->value();
+            double due = bill - advanced;
+            
+            dueEdit->setValue(due);
+            
+            // Update calculation info
+            if (bill > 0) {
+                double percentage = (advanced / bill) * 100;
+                QString info = QString("Advanced: $%1 (%2%) | Due: $%3 (%4%)")
+                    .arg(advanced, 0, 'f', 2)
+                    .arg(percentage, 0, 'f', 1)
+                    .arg(due, 0, 'f', 2)
+                    .arg(100 - percentage, 0, 'f', 1);
+                calculationInfoLabel->setText(info);
+            } else {
+                calculationInfoLabel->clear();
+            }
+        }
+    }
+    
+    void toggleAutoCalculation(bool checked) {
+        dueEdit->setReadOnly(checked);
+        if (checked) {
+            dueEdit->setStyleSheet("QDoubleSpinBox:read-only { background-color: #f0f0f0; }");
+            calculateDue();
+        } else {
+            dueEdit->setStyleSheet("");
+        }
+    }
+    
+    void applyPercentage() {
+        calculateAdvancedByPercentage(percentageSpinBox->value());
+    }
+    
+    void calculateAdvancedByPercentage(int percentage) {
+        double bill = billEdit->value();
+        double advanced = bill * (percentage / 100.0);
+        advancedEdit->setValue(advanced);
+        calculateDue();
+    }
+    
     void addPoint() {
         QString point = pointsEdit->toPlainText().trimmed();
         if (!point.isEmpty()) {
@@ -176,15 +309,26 @@ private:
     }
     
     void saveProject() {
+        // Validate required fields
+        if (clientNameEdit->text().isEmpty()) {
+            QMessageBox::warning(this, "Warning", "Please enter client name!");
+            return;
+        }
+        
+        if (billEdit->value() == 0) {
+            QMessageBox::warning(this, "Warning", "Please enter bill amount!");
+            return;
+        }
+        
         QSqlQuery query;
         query.prepare("INSERT INTO projects (client_name, client_phone, date, bill, advanced, due, points) "
                       "VALUES (?, ?, ?, ?, ?, ?, ?)");
         query.addBindValue(clientNameEdit->text());
         query.addBindValue(clientPhoneEdit->text());
         query.addBindValue(dateEdit->date().toString("yyyy-MM-dd"));
-        query.addBindValue(billEdit->text().toDouble());
-        query.addBindValue(advancedEdit->text().toDouble());
-        query.addBindValue(dueEdit->text().toDouble());
+        query.addBindValue(billEdit->value());
+        query.addBindValue(advancedEdit->value());
+        query.addBindValue(dueEdit->value());
         
         QStringList points;
         for (int i = 0; i < pointsList->count(); ++i) {
@@ -248,11 +392,11 @@ private:
         
         painter->drawText(100, yPos, "Financial Details:");
         yPos += 20;
-        painter->drawText(120, yPos, "Bill: $" + billEdit->text());
+        painter->drawText(120, yPos, QString("Bill: $%1").arg(billEdit->value(), 0, 'f', 2));
         yPos += 20;
-        painter->drawText(120, yPos, "Advanced: $" + advancedEdit->text());
+        painter->drawText(120, yPos, QString("Advanced: $%1").arg(advancedEdit->value(), 0, 'f', 2));
         yPos += 20;
-        painter->drawText(120, yPos, "Due: $" + dueEdit->text());
+        painter->drawText(120, yPos, QString("Due: $%1").arg(dueEdit->value(), 0, 'f', 2));
         yPos += 30;
         
         painter->drawText(100, yPos, "Project Points:");
@@ -263,14 +407,33 @@ private:
         }
         
         yPos += 30;
-        painter->drawText(100, yPos, "Notice: Verify the points, I, Nader Mahbub Khan, will not work on any points "
-                         "except these. Sudden change on decision after confirming order is not applicable.");
+        QFont noticeFont = painter->font();
+        noticeFont.setBold(true);
+        painter->setFont(noticeFont);
+        painter->drawText(100, yPos, "Notice:");
+        noticeFont.setBold(false);
+        painter->setFont(noticeFont);
+        yPos += 20;
+        painter->drawText(100, yPos, "Verify the points, I, Nader Mahbub Khan, will not work on any points");
+        yPos += 20;
+        painter->drawText(100, yPos, "except these. Sudden change on decision after confirming order is not applicable.");
+        
+        // Add payment status
+        yPos += 30;
+        if (advancedEdit->value() >= billEdit->value()) {
+            painter->drawText(100, yPos, "Payment Status: FULLY PAID");
+        } else if (advancedEdit->value() > 0) {
+            double percentage = (advancedEdit->value() / billEdit->value()) * 100;
+            painter->drawText(100, yPos, QString("Payment Status: %1% PAID").arg(percentage, 0, 'f', 1));
+        } else {
+            painter->drawText(100, yPos, "Payment Status: PENDING");
+        }
     }
     
     void updateRevenue() {
         QSqlQuery query;
         QString month = dateEdit->date().toString("yyyy-MM");
-        double bill = billEdit->text().toDouble();
+        double bill = billEdit->value();
         
         // Check if month exists
         query.prepare("SELECT amount FROM revenue WHERE month = ?");
@@ -326,11 +489,12 @@ private:
     
     void clearForm() {
         clientPhoneEdit->clear();
-        billEdit->clear();
-        advancedEdit->clear();
-        dueEdit->clear();
+        billEdit->setValue(0);
+        advancedEdit->setValue(0);
+        dueEdit->setValue(0);
         pointsEdit->clear();
         pointsList->clear();
+        calculationInfoLabel->clear();
     }
 };
 
