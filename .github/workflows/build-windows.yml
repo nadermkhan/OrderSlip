@@ -48,12 +48,26 @@ jobs:
     - name: Deploy Qt Libraries
       run: |
         cd build
-        windeployqt --release --compiler-runtime ProjectTracker.exe
+        windeployqt --release --no-translations --no-system-d3d-compiler --no-opengl-sw --compiler-runtime ProjectTracker.exe
 
     - name: Create Release Package
       run: |
         cd build
-        7z a ProjectTracker-Windows-x64.zip *.exe *.dll platforms/ styles/ sqldrivers/ projects.db
+        # Create a directory for the release
+        mkdir ProjectTracker-Release
+        # Copy executable
+        copy ProjectTracker.exe ProjectTracker-Release\
+        # Copy Qt dependencies
+        if (Test-Path "*.dll") { copy *.dll ProjectTracker-Release\ }
+        if (Test-Path "platforms") { xcopy platforms ProjectTracker-Release\platforms\ /E /I }
+        if (Test-Path "styles") { xcopy styles ProjectTracker-Release\styles\ /E /I }
+        if (Test-Path "sqldrivers") { xcopy sqldrivers ProjectTracker-Release\sqldrivers\ /E /I }
+        if (Test-Path "imageformats") { xcopy imageformats ProjectTracker-Release\imageformats\ /E /I }
+        if (Test-Path "iconengines") { xcopy iconengines ProjectTracker-Release\iconengines\ /E /I }
+        # Create empty database file
+        New-Item -ItemType File -Path ProjectTracker-Release\projects.db -Force
+        # Create zip archive
+        Compress-Archive -Path ProjectTracker-Release\* -DestinationPath ProjectTracker-Windows-x64.zip -Force
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
