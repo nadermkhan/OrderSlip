@@ -17,14 +17,16 @@
 #include <QPainter>
 #include <QDir>
 #include <QFileDialog>
-#include <QChartView>
-#include <QBarSeries>
-#include <QBarSet>
-#include <QChart>
-#include <QValueAxis>
+#include <QtCharts/QChartView>
+#include <QtCharts/QBarSeries>
+#include <QtCharts/QBarSet>
+#include <QtCharts/QChart>
+#include <QtCharts/QValueAxis>
+#include <QtCharts/QBarCategoryAxis>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QPagedPaintDevice>
 
 class ProjectTracker : public QMainWindow {
 private:
@@ -39,7 +41,7 @@ private:
     QListWidget *pointsList;
     
     // Dashboard elements
-    QChartView *chartView;
+    QtCharts::QChartView *chartView;
     
 public:
     ProjectTracker(QWidget *parent = nullptr) : QMainWindow(parent) {
@@ -130,7 +132,7 @@ private:
         revenueLabel->setStyleSheet("QLabel { font-size: 18px; font-weight: bold; margin: 10px; }");
         dashboardLayout->addWidget(revenueLabel);
         
-        chartView = new QChartView;
+        chartView = new QtCharts::QChartView;
         chartView->setRenderHint(QPainter::Antialiasing);
         dashboardLayout->addWidget(chartView);
         
@@ -205,7 +207,7 @@ private:
         
         // Generate Order PDF
         QPdfWriter orderWriter(dir + "/order_" + clientNameEdit->text() + ".pdf");
-        orderWriter.setPageSize(QPdfWriter::A4);
+        orderWriter.setPageSize(QPageSize(QPageSize::A4));
         orderWriter.setPageMargins(QMargins(30, 30, 30, 30));
         
         QPainter orderPainter(&orderWriter);
@@ -214,7 +216,7 @@ private:
         
         // Generate Client Copy PDF
         QPdfWriter clientWriter(dir + "/client_" + clientNameEdit->text() + ".pdf");
-        clientWriter.setPageSize(QPdfWriter::A4);
+        clientWriter.setPageSize(QPageSize(QPageSize::A4));
         clientWriter.setPageMargins(QMargins(30, 30, 30, 30));
         
         QPainter clientPainter(&clientWriter);
@@ -293,8 +295,8 @@ private:
     void loadDashboard() {
         QSqlQuery query("SELECT month, amount FROM revenue ORDER BY month");
         
-        QBarSeries *series = new QBarSeries();
-        QBarSet *set = new QBarSet("Revenue ($)");
+        QtCharts::QBarSeries *series = new QtCharts::QBarSeries();
+        QtCharts::QBarSet *set = new QtCharts::QBarSet("Revenue ($)");
         
         QStringList months;
         while (query.next()) {
@@ -304,17 +306,17 @@ private:
         
         series->append(set);
         
-        QChart *chart = new QChart();
+        QtCharts::QChart *chart = new QtCharts::QChart();
         chart->addSeries(series);
         chart->setTitle("Monthly Revenue");
-        chart->setAnimationOptions(QChart::SeriesAnimations);
+        chart->setAnimationOptions(QtCharts::QChart::SeriesAnimations);
         
-        QBarCategoryAxis *axisX = new QBarCategoryAxis();
+        QtCharts::QBarCategoryAxis *axisX = new QtCharts::QBarCategoryAxis();
         axisX->append(months);
         chart->addAxis(axisX, Qt::AlignBottom);
         series->attachAxis(axisX);
         
-        QValueAxis *axisY = new QValueAxis();
+        QtCharts::QValueAxis *axisY = new QtCharts::QValueAxis();
         axisY->setTitleText("Amount ($)");
         chart->addAxis(axisY, Qt::AlignLeft);
         series->attachAxis(axisY);
